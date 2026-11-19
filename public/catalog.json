@@ -1,0 +1,249 @@
+{
+  "business": {
+    "name": "DAY TO DAY",
+    "tagline": "STEAM IRONING & LAUNDRY SERVICES",
+    "phone": "7904403877",
+    "address": "3/244-A1, Devangar Nagar, Nesavalar Colony, Edayarpalayam, Coimbatore – 641025",
+    "tamilAddress": "3/244-A1, தேவாங்கர் நகர், நெசவாளர் காலனி, இடையர்பாளையம், கோயம்புத்தூர் – 641025",
+    "doorDelivery": "Door Delivery Available"
+  },
+  "topics": [
+    {
+      "id": "clothing",
+      "title": "Clothing Price List",
+      "icon": "👕",
+      "columns": [
+        {
+          "key": "wash",
+          "label": "Wash"
+        },
+        {
+          "key": "dryCleaning",
+          "label": "D.C. / Dry Cleaning"
+        },
+        {
+          "key": "starch",
+          "label": "Starch"
+        },
+        {
+          "key": "washAndStarch",
+          "label": "Wash & Starch"
+        }
+      ],
+      "items": [
+        {
+          "id": "shirt",
+          "name": "Shirt",
+          "prices": {
+            "wash": "40+",
+            "dryCleaning": "90+",
+            "starch": "50",
+            "washAndStarch": "60+"
+          }
+        },
+        {
+          "id": "pant",
+          "name": "Pant",
+          "prices": {
+            "wash": "40+",
+            "dryCleaning": "90+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "top",
+          "name": "Top",
+          "prices": {
+            "wash": "40+",
+            "dryCleaning": "90+",
+            "starch": "50",
+            "washAndStarch": "60+"
+          }
+        },
+        {
+          "id": "bottom",
+          "name": "Bottom",
+          "prices": {
+            "wash": "40+",
+            "dryCleaning": "90+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "shawl",
+          "name": "Shawl",
+          "prices": {
+            "wash": "40+",
+            "dryCleaning": "70+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "coat",
+          "name": "Coat",
+          "prices": {
+            "wash": "—",
+            "dryCleaning": "200+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "doctor-coat",
+          "name": "Doctor Coat",
+          "prices": {
+            "wash": "100+",
+            "dryCleaning": "200+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "coat-pant",
+          "name": "Coat Pant",
+          "prices": {
+            "wash": "—",
+            "dryCleaning": "100+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "tie",
+          "name": "Tie",
+          "prices": {
+            "wash": "—",
+            "dryCleaning": "30+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "saree",
+          "name": "Saree",
+          "prices": {
+            "wash": "100+",
+            "dryCleaning": "250+",
+            "starch": "80+",
+            "washAndStarch": "120+"
+          }
+        },
+        {
+          "id": "blouse",
+          "name": "Blouse",
+          "prices": {
+            "wash": "30+",
+            "dryCleaning": "50+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "full-frock",
+          "name": "Full Frock",
+          "prices": {
+            "wash": "150+",
+            "dryCleaning": "250+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "lehenga",
+          "name": "Lehenga",
+          "prices": {
+            "wash": "—",
+            "dryCleaning": "400+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "lehenga-stone",
+          "name": "Lehenga (Stone)",
+          "prices": {
+            "wash": "—",
+            "dryCleaning": "600+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        },
+        {
+          "id": "pavadai-set",
+          "name": "Pavadai Set",
+          "prices": {
+            "wash": "—",
+            "dryCleaning": "400+",
+            "starch": "—",
+            "washAndStarch": "—"
+          }
+        }
+      ]
+    },
+    {
+      "id": "household",
+      "title": "Household Price List",
+      "icon": "🏠",
+      "columns": [
+        {
+          "key": "amountRate",
+          "label": "Amount / Rate"
+        }
+      ],
+      "items": [
+        {
+          "id": "curtains",
+          "name": "Curtains",
+          "prices": {
+            "amountRate": "₹150 per kg"
+          }
+        },
+        {
+          "id": "carpet",
+          "name": "Carpet",
+          "prices": {
+            "amountRate": "₹200 per kg"
+          }
+        },
+        {
+          "id": "quilt-single",
+          "name": "Quilt (Single)",
+          "prices": {
+            "amountRate": "₹280"
+          }
+        },
+        {
+          "id": "quilt-double",
+          "name": "Quilt (Double)",
+          "prices": {
+            "amountRate": "₹380"
+          }
+        },
+        {
+          "id": "mat",
+          "name": "Mat",
+          "prices": {
+            "amountRate": "₹150 per kg"
+          }
+        },
+        {
+          "id": "jamakkalam",
+          "name": "Jamakkalam",
+          "prices": {
+            "amountRate": "₹300"
+          }
+        },
+        {
+          "id": "back-pack",
+          "name": "Back pack",
+          "prices": {
+            "amountRate": "₹200"
+          }
+        }
+      ]
+    }
+  ]
+}
