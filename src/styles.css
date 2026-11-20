@@ -83,3 +83,43 @@ a{color:inherit;text-decoration:none}
   .phone-copy>span{font-size:10px}
   .phone-chip strong{font-size:clamp(19px,5.5vw,25px)}
 }
+
+/* Customer service filters and selected price-list heading */
+.service-filters{display:grid;width:100%;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:3px}
+.service-filter{min-width:0;min-height:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:10px 8px;border:1px solid #83d9f8;border-radius:16px;background:linear-gradient(145deg,#fff,#e5f6ff);color:#073b70;font-size:12px;font-weight:800;line-height:1.2;text-align:center;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.service-filter:hover{transform:translateY(-2px);box-shadow:0 5px 12px #073b7014}
+.service-filter.active{background:#073b70;border-color:#20bdf2;color:#fff;box-shadow:0 4px 12px #073b7020}
+.service-filter-icon{width:32px;height:32px;display:grid;place-items:center;color:#087dbb}
+.service-filter.active .service-filter-icon{color:#fff}
+.service-filter-icon svg{width:25px;height:25px}
+.price-list-title{margin:25px 0 12px}
+.price-list-title .eyebrow{font-size:10px}
+.price-list-title h2{margin:3px 0;color:#073b70;font:800 25px Manrope,sans-serif}
+.price-list-title p{margin:0;color:#6b8196;font-size:13px}
+.service-assignment{display:flex;flex-wrap:wrap;gap:8px 16px;border:1px solid #d7e6ef;border-radius:10px;padding:11px 12px}
+.service-assignment legend{padding:0 5px;color:#34516c;font-size:12px;font-weight:800}
+.admin-form .checkbox-label{display:flex;flex-direction:row;align-items:center;gap:8px;color:#34516c;font-size:12px}
+.checkbox-label input{width:16px;height:16px;accent-color:#087dbb}
+.service-assignment .checkbox-label{margin:0}
+@media(max-width:900px){.service-filters{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:767px){.service-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.service-filter{min-height:70px;flex-direction:row;justify-content:flex-start;text-align:left;padding:9px 11px}.service-filter-icon{flex:0 0 30px}.price-list-title{margin-top:19px}.price-list-title h2{font-size:22px}}
+
+/* Individual service price sections */
+.service-price-card{width:100%;min-width:0;margin:18px 0;padding:20px;background:#fff;border:1px solid #dceaf2;border-radius:18px;box-shadow:0 6px 18px #12365c0a}
+.service-price-heading{display:flex;align-items:center;gap:13px;margin-bottom:16px}
+.service-price-icon{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border:1px solid #83d9f8;border-radius:14px;background:#e5f6ff;color:#073b70}
+.service-price-icon svg{width:26px;height:26px}
+.service-price-copy{flex:1;min-width:0}
+.service-price-copy h2{margin:0;color:#073b70;font:800 20px Manrope,sans-serif}
+.service-price-copy p{margin:3px 0 0;color:#6b8196;font-size:13px}
+.service-item-count{flex:0 0 auto;padding:7px 11px;border-radius:999px;background:#e5f6ff;color:#073b70;font-size:12px;font-weight:800}
+.service-price-table-wrap{width:100%;overflow:hidden;border:1px solid #d9e8f1;border-radius:12px}
+.service-price-table{width:100%;min-width:0;table-layout:fixed;border-collapse:separate;border-spacing:0}
+.service-price-table th{padding:13px 16px;background:#073b70;color:#fff;font-size:13px;font-weight:800;text-align:left}
+.service-price-table th:last-child,.service-price-value{text-align:right}
+.service-price-table tbody tr{background:#fff}
+.service-price-table tbody tr:nth-child(even){background:#edf7fc}
+.service-price-table td{padding:13px 16px;border-bottom:1px solid #e2edf4;color:#12365c;font-size:14px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.service-price-table tbody tr:last-child td{border-bottom:0}
+.service-price-table td.service-price-value{color:#087dbb;font-weight:800;white-space:nowrap}
+@media(max-width:767px){.service-price-card{margin:14px 0;padding:14px;border-radius:15px}.service-price-heading{gap:10px;margin-bottom:12px}.service-price-icon{width:42px;height:42px;flex-basis:42px;border-radius:12px}.service-price-copy h2{font-size:17px}.service-price-copy p{font-size:11px}.service-item-count{padding:6px 8px;font-size:10px}.service-price-table th,.service-price-table td{padding:11px 10px;font-size:13px}.service-price-table th:first-child,.service-price-table td:first-child{width:68%}.service-price-table th:last-child,.service-price-table td:last-child{width:32%}}

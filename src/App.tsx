@@ -2,19 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Shirt, WashingMachine, SprayCan, Phone, Sparkles, Package, Shirt as FabricRoll } from "lucide-react";
-import type { Catalog, PriceItem, PriceTopic } from "./types";
+import type { Catalog, LaundryService, PriceItem, PriceTopic } from "./types";
 import {
   downloadCatalog,
   loadAdminDraft,
   loadPublishedCatalog,
   makeId,
+  normalizeCatalog,
   saveAdminDraft,
   SESSION_KEY,
   STORAGE_KEY,
 } from "./lib/catalog";
 
 type View = "prices" | "admin";
-type AdminTab = "overview" | "topics" | "items";
+type AdminTab = "overview" | "topics" | "services" | "items";
+
+const serviceIconComponents = { sparkles: Sparkles, package: Package, shirt: Shirt, roll: FabricRoll, basket: WashingMachine, spray: SprayCan };
+const itemDisplayName = (item: PriceItem) => item.tamilName?.trim() ? `${item.name} (${item.tamilName.trim()})` : item.name;
 
 const money = (value: string) => {
   if (!value || value === "—") return "—";
@@ -122,15 +126,22 @@ function BrandHeader({ catalog, compact = false }: { catalog: Catalog; compact?:
 
 function CustomerPage({ catalog, onAdmin }: { catalog: Catalog; onAdmin: () => void }) {
   const [query, setQuery] = useState("");
-  const [activeTopic, setActiveTopic] = useState("");
+  const [activeServiceId, setActiveServiceId] = useState("all");
   const topics = catalog.topics;
-  const filteredTopics = useMemo(() => {
+  const services = [...(catalog.services ?? [])].filter((service) => service.active).sort((a, b) => a.sortOrder - b.sortOrder);
+  const activeService = services.find((service) => service.id === activeServiceId);
+  const visibleServiceLists = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return topics
-      .filter((topic) => !activeTopic || topic.id === activeTopic)
-      .map((topic) => ({ ...topic, items: topic.items.filter((item) => !q || item.name.toLowerCase().includes(q)) }))
-      .filter((topic) => topic.items.length > 0 || !q);
-  }, [topics, activeTopic, query]);
+    const selectedServices = activeService ? [activeService] : services;
+    return selectedServices.map((service) => {
+      const topic = topics.find((entry) => entry.id === service.topicId && entry.active !== false);
+      if (!topic) return null;
+      const items = topic.items
+        .filter((item) => item.active !== false && (!q || `${item.name} ${item.tamilName ?? ""}`.toLowerCase().includes(q)))
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      return { service, topic, items };
+    }).filter((entry): entry is NonNullable<typeof entry> => !!entry && (entry.items.length > 0 || !q));
+  }, [topics, services, activeService, query]);
 
   return (
     <main className="customer-page">
@@ -148,51 +159,41 @@ function CustomerPage({ catalog, onAdmin }: { catalog: Catalog; onAdmin: () => v
         <div className="price-tools">
           <label className="search-box">
             <span>⌕</span>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search clothing or household item…" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search in English or Tamil…" />
           </label>
-          <div className="topic-tabs" role="tablist" aria-label="Price list topics">
-            {topics.map((topic) => (
-              <button key={topic.id} className={activeTopic === topic.id ? "topic-tab active" : "topic-tab"} onClick={() => setActiveTopic(topic.id)}>
-                <span>{topic.icon}</span>{topic.title}
-              </button>
-            ))}
-            <button className={activeTopic === "" ? "topic-tab active" : "topic-tab"} onClick={() => setActiveTopic("")}>All prices</button>
+          <div className="service-filters" role="tablist" aria-label="Filter prices by service">
+            <button type="button" role="tab" aria-selected={activeServiceId === "all"} className={`service-filter ${activeServiceId === "all" ? "active" : ""}`} onClick={() => setActiveServiceId("all")}><span className="service-filter-icon">◎</span><span>All Prices</span></button>
+            {services.map((service) => {
+              const Icon = serviceIconComponents[service.icon as keyof typeof serviceIconComponents];
+              return <button type="button" role="tab" aria-selected={activeServiceId === service.id} className={`service-filter ${activeServiceId === service.id ? "active" : ""}`} key={service.id} onClick={() => setActiveServiceId(service.id)}><span className="service-filter-icon">{Icon ? <Icon aria-hidden="true" /> : service.icon}</span><span>{service.name}</span></button>;
+            })}
           </div>
         </div>
 
-        {filteredTopics.map((topic) => (
-          <section className="customer-topic" key={topic.id}>
-            <div className="section-heading">
-              <span className="section-icon">{topic.icon}</span>
-              <div><h2>{topic.title}</h2><p>{topic.items.length} items</p></div>
-            </div>
-            {topic.columns.length > 1 ? (
-              <div className="price-table-wrap">
-                <table className="price-table">
-                  <thead><tr><th>Item</th>{topic.columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead>
+        <div className="price-list-title"><span className="eyebrow">PRICE LIST</span><h2>{activeService?.name ?? "All Prices"}</h2><p>{activeService ? `Showing ${activeService.name} prices` : "Clothing and household prices"}</p></div>
+
+        {visibleServiceLists.map(({ service, topic, items }) => {
+          const Icon = serviceIconComponents[service.icon as keyof typeof serviceIconComponents];
+          return (
+            <section className="service-price-card" key={service.id}>
+              <header className="service-price-heading">
+                <span className="service-price-icon" aria-hidden="true">{Icon ? <Icon /> : service.icon}</span>
+                <div className="service-price-copy"><h2>{service.name}</h2><p>{topic.title} service rates</p></div>
+                <span className="service-item-count">{items.length} {items.length === 1 ? "item" : "items"}</span>
+              </header>
+              <div className="service-price-table-wrap">
+                <table className="service-price-table">
+                  <thead><tr><th scope="col">Item</th><th scope="col">Price</th></tr></thead>
                   <tbody>
-                    {topic.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="item-name">{item.name}</td>
-                        {topic.columns.map((column) => <td key={column.key}>{money(item.prices[column.key] ?? "—")}</td>)}
-                      </tr>
-                    ))}
+                    {items.map((item) => <tr key={item.id}><td className="service-price-item">{itemDisplayName(item)}</td><td className="service-price-value">{money(item.prices[service.priceKey] ?? "—")}</td></tr>)}
                   </tbody>
                 </table>
               </div>
-            ) : (
-              <div className="household-grid">
-                {topic.items.map((item) => (
-                  <div className="household-card" key={item.id}>
-                    <span>{item.name}</span><strong>{money(item.prices[topic.columns[0]?.key ?? "amountRate"] ?? "—")}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        ))}
+            </section>
+          );
+        })}
 
-        {filteredTopics.length === 0 && <div className="empty-state">No matching items. Try another search.</div>}
+        {visibleServiceLists.length === 0 && <div className="empty-state">No matching items. Try another search.</div>}
 
         <footer className="customer-footer">
           <div className="footer-top"><div><strong>{catalog.business.doorDelivery}</strong><p>Call us for bookings and enquiries.</p></div><a href={`tel:${catalog.business.phone}`} className="footer-call">☎ {catalog.business.phone}</a></div>
@@ -241,11 +242,21 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
   const [topicTitle, setTopicTitle] = useState("");
   const [topicIcon, setTopicIcon] = useState("🧺");
   const [editingTopic, setEditingTopic] = useState<string | null>(null);
+  const [serviceName, setServiceName] = useState("");
+  const [serviceIcon, setServiceIcon] = useState("sparkles");
+  const [serviceTopicId, setServiceTopicId] = useState(catalog.topics[0]?.id ?? "");
+  const [servicePriceKey, setServicePriceKey] = useState("");
+  const [serviceSortOrder, setServiceSortOrder] = useState(String(catalog.services?.length ?? 6));
+  const [serviceActive, setServiceActive] = useState(true);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [columnTopicId, setColumnTopicId] = useState(catalog.topics[0]?.id ?? "");
   const [columnLabel, setColumnLabel] = useState("");
   const [editingColumnKey, setEditingColumnKey] = useState<string | null>(null);
   const [itemTopicId, setItemTopicId] = useState(catalog.topics[0]?.id ?? "");
   const [itemName, setItemName] = useState("");
+  const [itemTamilName, setItemTamilName] = useState("");
+  const [itemActive, setItemActive] = useState(true);
+  const [itemServiceKeys, setItemServiceKeys] = useState<string[]>((catalog.services ?? []).filter((service) => service.topicId === (catalog.topics[0]?.id ?? "")).map((service) => service.priceKey));
   const [itemPrices, setItemPrices] = useState<Record<string, string>>({});
   const [editingItem, setEditingItem] = useState<{ topicId: string; itemId: string } | null>(null);
   const [notice, setNotice] = useState("");
@@ -255,6 +266,35 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
   const totalItems = catalog.topics.reduce((sum, topic) => sum + topic.items.length, 0);
   const updateTopic = (topicId: string, updater: (topic: PriceTopic) => PriceTopic) => {
     setCatalog({ ...catalog, topics: catalog.topics.map((topic) => topic.id === topicId ? updater(topic) : topic) });
+  };
+
+  const resetServiceForm = () => { setServiceName(""); setServiceIcon("sparkles"); setServicePriceKey(""); setServiceSortOrder(String(catalog.services?.length ?? 0)); setServiceActive(true); setEditingServiceId(null); };
+  const saveService = (e: FormEvent) => {
+    e.preventDefault();
+    const name = serviceName.trim();
+    const topic = catalog.topics.find((entry) => entry.id === serviceTopicId);
+    if (!name || !topic || !servicePriceKey) return;
+    const service: LaundryService = { id: editingServiceId ?? makeId(name), name, icon: serviceIcon, active: serviceActive, sortOrder: Number(serviceSortOrder) || 0, topicId: topic.id, priceKey: servicePriceKey };
+    const services = catalog.services ?? [];
+    setCatalog({
+      ...catalog,
+      services: editingServiceId ? services.map((entry) => entry.id === editingServiceId ? service : entry) : [...services, service],
+      topics: catalog.topics.map((entry) => entry.id === topic.id ? { ...entry, columns: entry.columns.map((column) => column.key === servicePriceKey ? { ...column, label: name } : column) } : entry),
+    });
+    setNotice(editingServiceId ? "Service updated." : "Service added.");
+    resetServiceForm();
+  };
+
+  const editService = (service: LaundryService) => {
+    setEditingServiceId(service.id); setServiceName(service.name); setServiceIcon(service.icon); setServiceTopicId(service.topicId); setServicePriceKey(service.priceKey); setServiceSortOrder(String(service.sortOrder)); setServiceActive(service.active);
+    document.getElementById("service-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const deleteService = (service: LaundryService) => {
+    if (!window.confirm(`Delete the “${service.name}” customer filter? Existing prices will remain in All Prices.`)) return;
+    setCatalog({ ...catalog, services: (catalog.services ?? []).filter((entry) => entry.id !== service.id) });
+    if (editingServiceId === service.id) resetServiceForm();
+    setNotice("Service deleted. Existing catalog prices were preserved.");
   };
 
   const resetColumnForm = () => { setColumnLabel(""); setEditingColumnKey(null); };
@@ -291,6 +331,11 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
   };
 
   const deleteColumn = (topic: PriceTopic, columnKey: string, label: string) => {
+    const linkedService = (catalog.services ?? []).find((service) => service.topicId === topic.id && service.priceKey === columnKey);
+    if (linkedService) {
+      setNotice(`Remove the “${linkedService.name}” service filter before deleting its price column.`);
+      return;
+    }
     if (topic.columns.length <= 1) {
       setNotice("A topic must keep at least one price column.");
       return;
@@ -336,17 +381,21 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
     setNotice("Topic deleted.");
   };
 
-  const resetItemForm = () => { setItemName(""); setItemPrices({}); setEditingItem(null); };
+  const resetItemForm = () => { setItemName(""); setItemTamilName(""); setItemPrices({}); setItemActive(true); setItemServiceKeys((catalog.services ?? []).filter((service) => service.topicId === itemTopicId).map((service) => service.priceKey)); setEditingItem(null); };
   const saveItem = (e: FormEvent) => {
     e.preventDefault();
     const topic = catalog.topics.find((entry) => entry.id === itemTopicId);
     if (!topic || !itemName.trim()) return;
-    const prices = Object.fromEntries(topic.columns.map((column) => [column.key, itemPrices[column.key]?.trim() || "—"]));
+    const applicableKeys = new Set(itemServiceKeys);
+    const servicePriceKeys = new Set((catalog.services ?? []).filter((service) => service.topicId === topic.id).map((service) => service.priceKey));
+    const prices = Object.fromEntries(topic.columns.map((column) => [column.key, servicePriceKeys.has(column.key)
+      ? (applicableKeys.has(column.key) ? (itemPrices[column.key]?.trim() || "—") : "—")
+      : (itemPrices[column.key]?.trim() || "—")]));
     if (editingItem) {
-      updateTopic(editingItem.topicId, (entry) => ({ ...entry, items: entry.items.map((item) => item.id === editingItem.itemId ? { ...item, name: itemName.trim(), prices } : item) }));
+      updateTopic(editingItem.topicId, (entry) => ({ ...entry, items: entry.items.map((item) => item.id === editingItem.itemId ? { ...item, name: itemName.trim(), tamilName: itemTamilName.trim(), active: itemActive, group: topic.id === "household" ? "household" : "clothing", prices } : item) }));
       setNotice("Item and prices updated.");
     } else {
-      const item: PriceItem = { id: makeId(itemName), name: itemName.trim(), prices };
+      const item: PriceItem = { id: makeId(itemName), name: itemName.trim(), tamilName: itemTamilName.trim(), active: itemActive, group: topic.id === "household" ? "household" : "clothing", sortOrder: topic.items.length, prices };
       updateTopic(itemTopicId, (entry) => ({ ...entry, items: [...entry.items, item] }));
       setNotice("Item added.");
     }
@@ -355,7 +404,8 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
 
   const editItem = (topic: PriceTopic, item: PriceItem) => {
     setEditingItem({ topicId: topic.id, itemId: item.id });
-    setItemTopicId(topic.id); setItemName(item.name); setItemPrices({ ...item.prices });
+    setItemTopicId(topic.id); setItemName(item.name); setItemTamilName(item.tamilName ?? ""); setItemActive(item.active !== false); setItemPrices({ ...item.prices });
+    setItemServiceKeys((catalog.services ?? []).filter((service) => service.topicId === topic.id && item.prices[service.priceKey] && item.prices[service.priceKey] !== "—").map((service) => service.priceKey));
     document.getElementById("item-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -366,13 +416,13 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
   };
 
   const changeItemTopic = (id: string) => {
-    setItemTopicId(id); setItemPrices({});
+    setItemTopicId(id); setItemPrices({}); setItemServiceKeys((catalog.services ?? []).filter((service) => service.topicId === id).map((service) => service.priceKey));
   };
 
   const importCatalog = async (file?: File) => {
     if (!file) return;
     try {
-      const parsed = JSON.parse(await file.text()) as Catalog;
+      const parsed = normalizeCatalog(JSON.parse(await file.text()) as Catalog);
       if (!parsed.business || !Array.isArray(parsed.topics)) throw new Error("Invalid catalogue format.");
       setCatalog(parsed); setImportError(""); setNotice("Catalogue imported.");
     } catch (error) {
@@ -392,7 +442,7 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
         {notice && <div className="notice-bar">{notice}<button onClick={() => setNotice("")}>×</button></div>}
 
         <nav className="admin-tabs">
-          {(["overview", "topics", "items"] as AdminTab[]).map((value) => <button key={value} className={tab === value ? "selected" : ""} onClick={() => setTab(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}
+          {(["overview", "topics", "services", "items"] as AdminTab[]).map((value) => <button key={value} className={tab === value ? "selected" : ""} onClick={() => setTab(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}
         </nav>
 
         {tab === "overview" && (
@@ -458,21 +508,48 @@ function Admin({ catalog, setCatalog, publicUrl, onLogout, onReset }: {
           </div>
         )}
 
+        {tab === "services" && (
+          <div className="admin-content two-column-admin">
+            <section className="admin-card">
+              <h2>{editingServiceId ? "Edit service" : "Add service filter"}</h2>
+              <form id="service-form" onSubmit={saveService} className="admin-form">
+                <label>Service name<input value={serviceName} onChange={(e) => setServiceName(e.target.value)} placeholder="e.g. Steam Ironing" required /></label>
+                <label>Icon<select value={serviceIcon} onChange={(e) => setServiceIcon(e.target.value)}><option value="sparkles">Steam Ironing</option><option value="package">Wash & Ironing</option><option value="shirt">Dry Cleaning</option><option value="roll">Saree Roll Polishing</option><option value="basket">Household Laundry</option><option value="spray">Wash & Starch</option></select></label>
+                <label>Price list<select value={serviceTopicId} onChange={(e) => { const id = e.target.value; setServiceTopicId(id); setServicePriceKey(catalog.topics.find((topic) => topic.id === id)?.columns[0]?.key ?? ""); }}>{catalog.topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select></label>
+                <label>Price column<select value={servicePriceKey} onChange={(e) => setServicePriceKey(e.target.value)}>{catalog.topics.find((topic) => topic.id === serviceTopicId)?.columns.map((column) => <option key={column.key} value={column.key}>{column.label}</option>)}</select></label>
+                <label>Display order<input type="number" value={serviceSortOrder} onChange={(e) => setServiceSortOrder(e.target.value)} /></label>
+                <label className="checkbox-label"><input type="checkbox" checked={serviceActive} onChange={(e) => setServiceActive(e.target.checked)} /> Show this service to customers</label>
+                <div className="button-row"><button className="primary-button" type="submit" disabled={!catalog.topics.length}>{editingServiceId ? "Save service" : "Add service"}</button>{editingServiceId && <button type="button" className="outline-button" onClick={resetServiceForm}>Cancel</button>}</div>
+              </form>
+              <p className="helper-text">Each customer filter displays the selected price column for its assigned price list.</p>
+            </section>
+            <section className="admin-card">
+              <h2>Services ({catalog.services?.length ?? 0})</h2>
+              <div className="managed-list">
+                {[...(catalog.services ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).map((service) => <div className="managed-row" key={service.id}><span className="managed-icon">{serviceIconComponents[service.icon as keyof typeof serviceIconComponents] ? (() => { const Icon = serviceIconComponents[service.icon as keyof typeof serviceIconComponents]; return <Icon size={18} />; })() : service.icon}</span><div className="managed-main"><strong>{service.name}{service.active ? "" : " · Hidden"}</strong><small>{catalog.topics.find((topic) => topic.id === service.topicId)?.title} · {catalog.topics.find((topic) => topic.id === service.topicId)?.columns.find((column) => column.key === service.priceKey)?.label ?? service.priceKey} · Order {service.sortOrder}</small></div><button className="small-action" onClick={() => editService(service)}>Edit</button><button className="small-action delete" onClick={() => deleteService(service)}>Delete</button></div>)}
+              </div>
+            </section>
+          </div>
+        )}
+
         {tab === "items" && (
           <div className="admin-content two-column-admin">
             <section className="admin-card">
               <h2>{editingItem ? "Edit item & prices" : "Add new item"}</h2>
               <form id="item-form" onSubmit={saveItem} className="admin-form">
-                <label>Topic<select value={itemTopicId} disabled={!!editingItem} onChange={(e) => changeItemTopic(e.target.value)}>{catalog.topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select></label>
-                <label>Item name<input value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g. Bedsheet" required /></label>
-                {catalog.topics.find((topic) => topic.id === itemTopicId)?.columns.map((column) => <label key={column.key}>{column.label}<input value={itemPrices[column.key] ?? ""} onChange={(e) => setItemPrices({ ...itemPrices, [column.key]: e.target.value })} placeholder="e.g. 50 or 150 per kg" /></label>)}
+                <label>Price list<select value={itemTopicId} disabled={!!editingItem} onChange={(e) => changeItemTopic(e.target.value)}>{catalog.topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select></label>
+                <label>English Item Name<input value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g. Shirt" required /></label>
+                <label>Tamil Item Name<input value={itemTamilName} onChange={(e) => setItemTamilName(e.target.value)} placeholder="e.g. ஷர்ட்" lang="ta" /></label>
+                <label className="checkbox-label"><input type="checkbox" checked={itemActive} onChange={(e) => setItemActive(e.target.checked)} /> Show this item to customers</label>
+                <fieldset className="service-assignment"><legend>Applicable services</legend>{(catalog.services ?? []).filter((service) => service.topicId === itemTopicId).map((service) => <label className="checkbox-label" key={service.id}><input type="checkbox" checked={itemServiceKeys.includes(service.priceKey)} onChange={(e) => setItemServiceKeys(e.target.checked ? [...new Set([...itemServiceKeys, service.priceKey])] : itemServiceKeys.filter((key) => key !== service.priceKey))} /> {service.name}</label>)}</fieldset>
+                {catalog.topics.find((topic) => topic.id === itemTopicId)?.columns.map((column) => { const isAssignedServicePrice = (catalog.services ?? []).some((service) => service.topicId === itemTopicId && service.priceKey === column.key); return <label key={column.key}>{column.label}<input value={itemPrices[column.key] ?? ""} disabled={isAssignedServicePrice && !itemServiceKeys.includes(column.key)} onChange={(e) => setItemPrices({ ...itemPrices, [column.key]: e.target.value })} placeholder={isAssignedServicePrice && !itemServiceKeys.includes(column.key) ? "Not applicable" : "e.g. 50, 150 per kg"} /></label>; })}
                 <div className="button-row"><button className="primary-button" type="submit" disabled={!catalog.topics.length}>{editingItem ? "Save item" : "Add item"}</button>{editingItem && <button type="button" className="outline-button" onClick={resetItemForm}>Cancel</button>}</div>
               </form>
             </section>
             <section className="admin-card">
               <h2>Manage items ({totalItems})</h2>
               <div className="managed-list item-managed-list">
-                {catalog.topics.flatMap((topic) => topic.items.map((item) => ({ topic, item }))).map(({ topic, item }) => <div className="managed-row item-row" key={`${topic.id}-${item.id}`}><div className="managed-main"><strong>{item.name}</strong><small>{topic.title} · {topic.columns.map((column) => `${column.label}: ${item.prices[column.key] ?? "—"}`).join(" · ")}</small></div><button className="small-action" onClick={() => editItem(topic, item)}>Edit</button><button className="small-action delete" onClick={() => deleteItem(topic, item)}>Delete</button></div>)}
+                {catalog.topics.flatMap((topic) => topic.items.map((item) => ({ topic, item }))).map(({ topic, item }) => <div className="managed-row item-row" key={`${topic.id}-${item.id}`}><div className="managed-main"><strong>{itemDisplayName(item)}{item.active === false ? " · Hidden" : ""}</strong><small>{topic.title} · {topic.columns.map((column) => `${column.label}: ${item.prices[column.key] ?? "—"}`).join(" · ")}</small></div><button className="small-action" onClick={() => editItem(topic, item)}>Edit</button><button className="small-action delete" onClick={() => deleteItem(topic, item)}>Delete</button></div>)}
               </div>
             </section>
           </div>
